@@ -1,0 +1,3 @@
+extensionModule: ./dist/extension.js
+logging:
+  stdStreams: true
