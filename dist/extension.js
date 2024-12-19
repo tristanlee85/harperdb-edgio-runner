@@ -131,8 +131,7 @@ function start(options) {
   logger.info(`${extensionPrefix} Starting Edgio extension...`);
   return {
     async handleDirectory(_, componentPath) {
-      const readyPromise = await edgio_default();
-      const { host, port } = await readyPromise;
+      const { host, port } = await edgio_default();
       logger.info(`${extensionPrefix} Edgio ready on http://${host}:${port}`);
       options.server.http(async (request, nextHandler) => {
         const { _nodeRequest: req, _nodeResponse: res } = request;

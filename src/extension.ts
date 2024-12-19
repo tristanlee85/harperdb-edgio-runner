@@ -75,8 +75,7 @@ export function start(options: ExtensionOptions) {
 	return {
 		async handleDirectory(_: any, componentPath: string) {
 			// Run the Edgio handler
-			const readyPromise = await startEdgio();
-			const { host, port } = await readyPromise;
+			const { host, port } = await startEdgio();
 			logger.info(`${extensionPrefix} Edgio ready on http://${host}:${port}`);
 
 			options.server.http(async (request: any, nextHandler: any) => {
