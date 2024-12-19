@@ -1,6 +1,6 @@
 # HarperDB Edgio Runner
 
-A [HarperDB Component](https://docs.harperdb.io/docs/developers/components) for parsing EdgeControl rules.
+A [HarperDB Component](https://docs.harperdb.io/docs/developers/components) for processing requests with Edgio.
 
 ## Usage
 
