@@ -1,29 +1,25 @@
-# HarperDB EdgeControl Parser
+# HarperDB Edgio Runner
 
 A [HarperDB Component](https://docs.harperdb.io/docs/developers/components) for parsing EdgeControl rules.
 
 ## Usage
 
-> [!NOTE]
-> This guide assumes you're already familiar with [HarperDb Components](https://docs.harperdb.io/docs/developers/components). Check out [`harperdb-proxy-transform-example`](https://github.com/tristanlee85/harperdb-proxy-transform-example) for more information.
-
 1. Add the extension to your HarperDB project using your package manager:
 
 ```sh
-npm install git+ssh://git@github.com:tristanlee85/edge-control-parser.git --save
+npm install git+ssh://git@github.com:tristanlee85/harperdb-edgio-runner.git --save
 # or
-yarn add git+ssh://git@github.com:tristanlee85/edge-control-parser.git
+yarn add git+ssh://git@github.com:tristanlee85/harperdb-edgio-runner.git
 # or
-pnpm add git+ssh://git@github.com:tristanlee85/edge-control-parser.git
+pnpm add git+ssh://git@github.com:tristanlee85/harperdb-edgio-runner.git
 ```
 
 2. Add to `config.yaml`:
 
 ```yaml
-'edge-control-parser':
-  package: 'edge-control-parser'
+'edgio-runner':
+  package: 'edgio-runner'
   files: /*
-  edgeControlPath: /path/to/edge-control.json
 ```
 
 3. Run your app with HarperDB:
@@ -34,7 +30,7 @@ harperdb run .
 
 ### Extension Options
 
-- `edgeControlPath`: The path to the EdgeControl file.
+- `edgioDir`: The path to the `.edgio` directory.
 
 ## Building
 
