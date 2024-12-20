@@ -26,30 +26,38 @@ let edgioCwd: string | undefined;
 // within worker threads. This invocation of process.chdir() becomes a no-op within
 // that context.
 const originalChdir = process.chdir;
-process.chdir = (directory) => {
-	if (directory.includes(edgioPathName)) {
-		// Edgio has attempted to change the cwd so future calls to process.cwd() will return the
-		// new cwd.
-		edgioCwd = directory;
-		return;
-	}
-	originalChdir(directory);
-};
+if (!process.chdir.hasOwnProperty('__edgio_runner_override')) {
+	process.chdir = (directory) => {
+		if (directory.includes(edgioPathName)) {
+			// Edgio has attempted to change the cwd so future calls to process.cwd() will return the
+			// new cwd.
+			edgioCwd = directory;
+			return;
+		}
+		originalChdir(directory);
+	};
+	// @ts-ignore
+	process.chdir.__edgio_runner_override = true;
+}
 
 const originalCwd = process.cwd;
-process.cwd = () => {
-	const stack = new Error().stack;
+if (!process.cwd.hasOwnProperty('__edgio_runner_override')) {
+	process.cwd = () => {
+		const stack = new Error().stack;
 
-	const cwdLines =
-		stack?.split('\n').filter((line) => line.includes('process.cwd') || line.includes(edgioPathName)) ?? [];
+		const cwdLines =
+			stack?.split('\n').filter((line) => line.includes('process.cwd') || line.includes(edgioPathName)) ?? [];
 
-	// This implies cwd() was called from within the Edgio handler.
-	if (cwdLines.length > 0 && edgioCwd) {
-		return edgioCwd;
-	}
+		// This implies cwd() was called from within the Edgio handler.
+		if (cwdLines.length >= 2 && edgioCwd) {
+			return edgioCwd;
+		}
 
-	return originalCwd();
-};
+		return originalCwd();
+	};
+	// @ts-ignore
+	process.cwd.__edgio_runner_override = true;
+}
 
 const production = true;
 const edgioDir = join(cwd, '.edgio');
