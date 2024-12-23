@@ -52589,6 +52589,7 @@ import net from "node:net";
 var serveStaticAssets;
 var runWithServerless;
 try {
+  logger.info("importing edgio modules");
   serveStaticAssets = await Promise.resolve().then(() => __toESM(require_serveStaticAssets(), 1)).then((mod) => mod.default);
   runWithServerless = await Promise.resolve().then(() => __toESM(require_runWithServerless(), 1)).then((mod) => mod.default);
   if (!process.env.EDGIO_SERVER) {

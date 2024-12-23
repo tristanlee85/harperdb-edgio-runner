@@ -16,6 +16,7 @@ let serveStaticAssets: any;
 let runWithServerless: any;
 
 try {
+	logger.info('importing edgio modules');
 	serveStaticAssets = await import('@edgio/cli/serverless/serveStaticAssets.js').then((mod) => mod.default);
 	runWithServerless = await import('@edgio/cli/utils/runWithServerless.js').then((mod) => mod.default);
 
