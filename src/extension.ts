@@ -1,5 +1,5 @@
 import assert from 'node:assert';
-import startEdgio, { handleEdgioRequest, getServerInstance } from './edgio';
+// import startEdgio, { handleEdgioRequest, getServerInstance } from './edgio';
 
 const extensionPrefix = '[edgio-runner]';
 
@@ -53,11 +53,11 @@ export function startOnMainThread(options: ExtensionOptions) {
 
 	return {
 		async setupDirectory(_: any, componentPath: string) {
-			logger.info(`${extensionPrefix}- setupDirectory`);
-			const serverInstance = await startEdgio();
-			logger.info(
-				`${extensionPrefix} Edgio server ready on http://${serverInstance.ports.localhost}:${serverInstance.ports.port}`
-			);
+			logger.info(`${extensionPrefix} - setupDirectory - ${componentPath}`);
+			// const serverInstance = await startEdgio();
+			// logger.info(
+			// 	`${extensionPrefix} Edgio server ready on http://${serverInstance.ports.localhost}:${serverInstance.ports.port}`
+			// );
 
 			return true;
 		},
@@ -78,18 +78,18 @@ export function start(options: ExtensionOptions) {
 	return {
 		async handleDirectory(_: any, componentPath: string) {
 			logger.info(`${extensionPrefix}- handleDirectory`);
-			const serverInstance = getServerInstance();
-			if (!serverInstance?.ready) {
-				// logger.error(`${extensionPrefix} Edgio server is not ready`);
-				return false;
-			}
+			// const serverInstance = getServerInstance();
+			// if (!serverInstance?.ready) {
+			// 	// logger.error(`${extensionPrefix} Edgio server is not ready`);
+			// 	return false;
+			// }
 
 			options.server.http(async (request: any, nextHandler: any) => {
 				const { _nodeRequest: req, _nodeResponse: res } = request;
 
 				logger.debug(`${extensionPrefix} Handling request: ${req.url.split('?')[0]}`);
 
-				await handleEdgioRequest(req, res);
+				// await handleEdgioRequest(req, res);
 
 				logger.debug(`${extensionPrefix} Finished handling request: ${req.url.split('?')[0]}`);
 
