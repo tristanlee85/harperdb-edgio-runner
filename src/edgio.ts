@@ -41,7 +41,7 @@ try {
 		process.env.EDGIO_SERVER = JSON.stringify(serverInstance);
 	}
 } catch (error) {
-	console.error(`Failed to resolve or import serveStaticAssets or runWithServerless: ${error}`);
+	throw new Error(`Failed to resolve or import serveStaticAssets or runWithServerless: ${error}`);
 }
 
 const serverInstance: EdgioServerInstance = JSON.parse(process.env.EDGIO_SERVER!);
