@@ -18,106 +18,6 @@ var __toESM = (mod, isNodeMode, target) => {
 var __commonJS = (cb, mod) => () => (mod || cb((mod = { exports: {} }).exports, mod), mod.exports);
 var __require = /* @__PURE__ */ createRequire(import.meta.url);
 
-// node_modules/@edgio/cli/constants/core.js
-var require_core = __commonJS((exports) => {
-  Object.defineProperty(exports, "__esModule", {
-    value: true
-  });
-  exports.PORTS = exports.HTTP_HEADERS = exports.EDGIO_ENV_VARIABLES = exports.EDGIO_CLOUD_FUNCTIONS_HINT_HEADER = undefined;
-  var port = Number(process.env.PORT) || 3000;
-  var localhost = "127.0.0.1";
-  var PORTS = exports.PORTS = {
-    port,
-    jsPort: port + 1,
-    assetPort: port + 2,
-    handlerPort: port + 1000,
-    localhost,
-    localhostWithPort: `${localhost}:${port}`
-  };
-  var EDGIO_ENV_VARIABLES = exports.EDGIO_ENV_VARIABLES = {
-    config: "EDGIO_CONFIG",
-    internalConfig: "EDGIO_INTERNAL_CONFIG",
-    deploymentType: "EDGIO_DEPLOYMENT_TYPE",
-    versionOverride: "EDGIO_VERSION_OVERRIDE",
-    productionBuild: "EDGIO_PRODUCTION_BUILD",
-    local: "EDGIO_LOCAL",
-    cache: "EDGIO_CACHE",
-    permalinkHost: "EDGIO_PERMALINK_HOST",
-    imageOptimizerHost: "EDGIO_IMAGE_OPTIMIZER_HOST"
-  };
-  var EDGIO_CLOUD_FUNCTIONS_HINT_HEADER = exports.EDGIO_CLOUD_FUNCTIONS_HINT_HEADER = "x-cloud-functions-hint";
-  var HTTP_HEADERS = exports.HTTP_HEADERS = {
-    accept: "accept",
-    acceptCh: "accept-CH",
-    acceptEncoding: "accept-encoding",
-    authorization: "authorization",
-    cacheControl: "cache-control",
-    contentEncoding: "content-encoding",
-    contentLength: "content-length",
-    contentType: "content-type",
-    cookie: "cookie",
-    expires: "expires",
-    host: "host",
-    location: "location",
-    range: "range",
-    serverTiming: "server-timing",
-    setCookie: "set-cookie",
-    userAgent: "user-agent",
-    vary: "vary",
-    via: "via",
-    transferEncoding: "transfer-encoding",
-    strictTransportSecurity: "strict-transport-security",
-    referrerPolicy: "referrer-policy",
-    featurePolicy: "feature-policy",
-    xHost: "x-host",
-    xEcPop: "x-ec-pop",
-    xEcDebug: "x-ec-debug",
-    xForwardedFor: "x-forwarded-for",
-    xForwardedProto: "x-forwarded-proto",
-    xForwardedPort: "x-forwarded-port",
-    xFrameOptions: "x-frame-options",
-    xXssProtection: "x-xss-protection",
-    xContentTypeOptions: "x-content-type-options",
-    xRequestId: "x-request-id",
-    xSwCacheControl: "x-sw-cache-control",
-    xEdgeBrowser: "x-edg-browser",
-    xEdgeCacheControl: "x-edg-cache-control",
-    xEdgeCachingStatus: "x-edg-caching-status",
-    xEdgeClientIp: "x-edg-client-ip",
-    xEdgeComponents: "x-edg-components",
-    xEdgeDestination: "x-edg-destination",
-    xEdgeDevice: "x-edg-device",
-    xEdgeDeviceIsBot: "x-edg-device-is-bot",
-    xEdgeGeoCity: "x-edg-geo-city",
-    xEdgeGeoCountryCode: "x-edg-geo-country-code",
-    xEdgeGeoLatitude: "x-edg-geo-latitude",
-    xEdgeGeoLongitude: "x-edg-geo-longitude",
-    xEdgeGeoPostalCode: "x-edg-geo-postal-code",
-    xEdgeMatchedRoutes: "x-edg-matched-routes",
-    xEdgeProtocol: "x-edg-protocol",
-    xEdgeRoute: "x-edg-route",
-    xEdgeStatus: "x-edg-status",
-    xEdgeSurrogateKey: "x-edg-surrogate-key",
-    xEdgeT: "x-edg-t",
-    xEdgeUserT: "x-edg-user-t",
-    xEdgeVendor: "x-edg-vendor",
-    xEdgeVersion: "x-edg-version",
-    xEdgServerlessError: "x-edg-serverless-error",
-    xEdgInvokeSource: "x-edg-invoke-source",
-    xEdgInvokeAction: "x-edg-invoke-action",
-    xCloudFunctionsHint: EDGIO_CLOUD_FUNCTIONS_HINT_HEADER,
-    x0ClientIp: "x-0-client-ip",
-    x0Protocol: "x-0-protocol",
-    x0Version: "x-0-version",
-    xEcEdgeIoDebug: "x-ec-edgeio-debug",
-    xEcEdgeIoDisable: "x-ec-edgeio-disable",
-    xEdgeIoInfo: "x-edgeio-info",
-    xEdgeIoStatus: "x-edgeio-status",
-    xEdgeIoError: "x-edgeio-error",
-    xEcUUID: "x-ec-uuid"
-  };
-});
-
 // node_modules/mime-db/db.json
 var require_db = __commonJS((exports, module) => {
   module.exports = {
@@ -8855,6 +8755,106 @@ var require_serveStaticAssets = __commonJS((exports, module) => {
         reject(e);
       }
     });
+  };
+});
+
+// node_modules/@edgio/cli/constants/core.js
+var require_core = __commonJS((exports) => {
+  Object.defineProperty(exports, "__esModule", {
+    value: true
+  });
+  exports.PORTS = exports.HTTP_HEADERS = exports.EDGIO_ENV_VARIABLES = exports.EDGIO_CLOUD_FUNCTIONS_HINT_HEADER = undefined;
+  var port = Number(process.env.PORT) || 3000;
+  var localhost = "127.0.0.1";
+  var PORTS = exports.PORTS = {
+    port,
+    jsPort: port + 1,
+    assetPort: port + 2,
+    handlerPort: port + 1000,
+    localhost,
+    localhostWithPort: `${localhost}:${port}`
+  };
+  var EDGIO_ENV_VARIABLES = exports.EDGIO_ENV_VARIABLES = {
+    config: "EDGIO_CONFIG",
+    internalConfig: "EDGIO_INTERNAL_CONFIG",
+    deploymentType: "EDGIO_DEPLOYMENT_TYPE",
+    versionOverride: "EDGIO_VERSION_OVERRIDE",
+    productionBuild: "EDGIO_PRODUCTION_BUILD",
+    local: "EDGIO_LOCAL",
+    cache: "EDGIO_CACHE",
+    permalinkHost: "EDGIO_PERMALINK_HOST",
+    imageOptimizerHost: "EDGIO_IMAGE_OPTIMIZER_HOST"
+  };
+  var EDGIO_CLOUD_FUNCTIONS_HINT_HEADER = exports.EDGIO_CLOUD_FUNCTIONS_HINT_HEADER = "x-cloud-functions-hint";
+  var HTTP_HEADERS = exports.HTTP_HEADERS = {
+    accept: "accept",
+    acceptCh: "accept-CH",
+    acceptEncoding: "accept-encoding",
+    authorization: "authorization",
+    cacheControl: "cache-control",
+    contentEncoding: "content-encoding",
+    contentLength: "content-length",
+    contentType: "content-type",
+    cookie: "cookie",
+    expires: "expires",
+    host: "host",
+    location: "location",
+    range: "range",
+    serverTiming: "server-timing",
+    setCookie: "set-cookie",
+    userAgent: "user-agent",
+    vary: "vary",
+    via: "via",
+    transferEncoding: "transfer-encoding",
+    strictTransportSecurity: "strict-transport-security",
+    referrerPolicy: "referrer-policy",
+    featurePolicy: "feature-policy",
+    xHost: "x-host",
+    xEcPop: "x-ec-pop",
+    xEcDebug: "x-ec-debug",
+    xForwardedFor: "x-forwarded-for",
+    xForwardedProto: "x-forwarded-proto",
+    xForwardedPort: "x-forwarded-port",
+    xFrameOptions: "x-frame-options",
+    xXssProtection: "x-xss-protection",
+    xContentTypeOptions: "x-content-type-options",
+    xRequestId: "x-request-id",
+    xSwCacheControl: "x-sw-cache-control",
+    xEdgeBrowser: "x-edg-browser",
+    xEdgeCacheControl: "x-edg-cache-control",
+    xEdgeCachingStatus: "x-edg-caching-status",
+    xEdgeClientIp: "x-edg-client-ip",
+    xEdgeComponents: "x-edg-components",
+    xEdgeDestination: "x-edg-destination",
+    xEdgeDevice: "x-edg-device",
+    xEdgeDeviceIsBot: "x-edg-device-is-bot",
+    xEdgeGeoCity: "x-edg-geo-city",
+    xEdgeGeoCountryCode: "x-edg-geo-country-code",
+    xEdgeGeoLatitude: "x-edg-geo-latitude",
+    xEdgeGeoLongitude: "x-edg-geo-longitude",
+    xEdgeGeoPostalCode: "x-edg-geo-postal-code",
+    xEdgeMatchedRoutes: "x-edg-matched-routes",
+    xEdgeProtocol: "x-edg-protocol",
+    xEdgeRoute: "x-edg-route",
+    xEdgeStatus: "x-edg-status",
+    xEdgeSurrogateKey: "x-edg-surrogate-key",
+    xEdgeT: "x-edg-t",
+    xEdgeUserT: "x-edg-user-t",
+    xEdgeVendor: "x-edg-vendor",
+    xEdgeVersion: "x-edg-version",
+    xEdgServerlessError: "x-edg-serverless-error",
+    xEdgInvokeSource: "x-edg-invoke-source",
+    xEdgInvokeAction: "x-edg-invoke-action",
+    xCloudFunctionsHint: EDGIO_CLOUD_FUNCTIONS_HINT_HEADER,
+    x0ClientIp: "x-0-client-ip",
+    x0Protocol: "x-0-protocol",
+    x0Version: "x-0-version",
+    xEcEdgeIoDebug: "x-ec-edgeio-debug",
+    xEcEdgeIoDisable: "x-ec-edgeio-disable",
+    xEdgeIoInfo: "x-edgeio-info",
+    xEdgeIoStatus: "x-edgeio-status",
+    xEdgeIoError: "x-edgeio-error",
+    xEcUUID: "x-ec-uuid"
   };
 });
 
@@ -52589,13 +52589,10 @@ import net from "node:net";
 var serveStaticAssets;
 var runWithServerless;
 try {
-  const corePath = __require.resolve("/Users/tlee/Projects/harperdb/edgio-runner/node_modules/@edgio/cli/constants/core.js");
-  const serveStaticAssetsPath = __require.resolve("/Users/tlee/Projects/harperdb/edgio-runner/node_modules/@edgio/cli/serverless/serveStaticAssets.js");
-  const runWithServerlessPath = __require.resolve("/Users/tlee/Projects/harperdb/edgio-runner/node_modules/@edgio/cli/utils/runWithServerless.js");
-  serveStaticAssets = await import(serveStaticAssetsPath).then((mod) => mod.default);
-  runWithServerless = await import(runWithServerlessPath).then((mod) => mod.default);
+  serveStaticAssets = await Promise.resolve().then(() => __toESM(require_serveStaticAssets(), 1)).then((mod) => mod.default);
+  runWithServerless = await Promise.resolve().then(() => __toESM(require_runWithServerless(), 1)).then((mod) => mod.default);
   if (!process.env.EDGIO_SERVER) {
-    const edgioCore = await import(corePath);
+    const edgioCore = await Promise.resolve().then(() => __toESM(require_core(), 1));
     const serverInstance = {
       ports: {
         localhost: edgioCore.PORTS.localhost,

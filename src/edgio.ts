@@ -16,11 +16,8 @@ let serveStaticAssets: any;
 let runWithServerless: any;
 
 try {
-	const corePath = require.resolve('@edgio/cli/constants/core.js');
-	const serveStaticAssetsPath = require.resolve('@edgio/cli/serverless/serveStaticAssets.js');
-	const runWithServerlessPath = require.resolve('@edgio/cli/utils/runWithServerless.js');
-	serveStaticAssets = await import(serveStaticAssetsPath).then((mod) => mod.default);
-	runWithServerless = await import(runWithServerlessPath).then((mod) => mod.default);
+	serveStaticAssets = await import('@edgio/cli/serverless/serveStaticAssets.js').then((mod) => mod.default);
+	runWithServerless = await import('@edgio/cli/utils/runWithServerless.js').then((mod) => mod.default);
 
 	// Load the Edgio ports into the shared process.env for all workers to reference.
 	// This is necessary because servers such as Next.js will set process.env.PORT AFTER
@@ -28,7 +25,7 @@ try {
 	// is re-imported within a worker thread, then `edgioCore.PORTS.port` will become what
 	// Next.js sets it to (e.g. 3001), rather than the default Edgio server's port (e.g. 3000).
 	if (!process.env.EDGIO_SERVER) {
-		const edgioCore = await import(corePath);
+		const edgioCore = await import('@edgio/cli/constants/core.js');
 		const serverInstance: EdgioServerInstance = {
 			ports: {
 				localhost: edgioCore.PORTS.localhost,
