@@ -15,7 +15,6 @@
 	"author": "",
 	"license": "ISC",
 	"dependencies": {
-		"bun": "^1.1.39",
 		"dotenv": "^16.4.7"
 	},
 	"devDependencies": {
