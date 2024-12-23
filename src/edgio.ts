@@ -97,11 +97,11 @@ const startEdgio = async () => {
 	console.log('edgioDir', edgioDir);
 	const readyPromise = checkServerReady();
 
-	const serveStaticAssets = (await import('@edgio/cli/serverless/serveStaticAssets.js')).default;
-	const runWithServerless = (await import('@edgio/cli/utils/runWithServerless.js')).default;
+	// const serveStaticAssets = (await import('@edgio/cli/serverless/serveStaticAssets.js')).default;
+	// const runWithServerless = (await import('@edgio/cli/utils/runWithServerless.js')).default;
 
-	await serveStaticAssets(staticAssetDirs, serverInstance.ports.assetPort);
-	await runWithServerless(edgioDir, { devMode: !production, withHandler });
+	// await serveStaticAssets(staticAssetDirs, serverInstance.ports.assetPort);
+	// await runWithServerless(edgioDir, { devMode: !production, withHandler });
 	return readyPromise;
 };
 
