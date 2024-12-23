@@ -78,7 +78,7 @@ export function start(options: ExtensionOptions) {
 		async handleDirectory(_: any, componentPath: string) {
 			const serverInstance = getServerInstance();
 			if (!serverInstance?.ready) {
-				logger.error(`${extensionPrefix} Edgio server is not ready`);
+				// logger.error(`${extensionPrefix} Edgio server is not ready`);
 				return false;
 			}
 

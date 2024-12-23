@@ -52733,7 +52733,6 @@ function start(options) {
     async handleDirectory(_, componentPath) {
       const serverInstance2 = getServerInstance();
       if (!serverInstance2?.ready) {
-        logger.error(`${extensionPrefix} Edgio server is not ready`);
         return false;
       }
       options.server.http(async (request, nextHandler) => {
