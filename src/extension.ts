@@ -1,5 +1,5 @@
 import assert from 'node:assert';
-import startEdgio, { checkServerReady, handleEdgioRequest } from './edgio';
+import startEdgio, { handleEdgioRequest, getServerInstance } from './edgio';
 
 const extensionPrefix = '[edgio-runner]';
 
@@ -44,8 +44,6 @@ function resolveConfig(options: ExtensionOptions) {
  * returning a Resource Extension that will subsequently be executed once,
  * on the main thread.
  *
- * The Resource Extension is responsible for...
- *
  * @param {ExtensionOptions} options
  * @returns
  */
@@ -54,6 +52,12 @@ export function startOnMainThread(options: ExtensionOptions) {
 
 	return {
 		async setupDirectory(_: any, componentPath: string) {
+			// Start the Edgio server
+			const serverInstance = await startEdgio();
+			logger.info(
+				`${extensionPrefix} Edgio server ready on http://${serverInstance.ports.localhost}:${serverInstance.ports.port}`
+			);
+
 			return true;
 		},
 	};
@@ -70,13 +74,13 @@ export function startOnMainThread(options: ExtensionOptions) {
 export function start(options: ExtensionOptions) {
 	const config = resolveConfig(options);
 
-	logger.info(`${extensionPrefix} Starting Edgio extension...`);
-
 	return {
 		async handleDirectory(_: any, componentPath: string) {
-			// Run the Edgio handler
-			const { host, port } = await startEdgio();
-			logger.info(`${extensionPrefix} Edgio ready on http://${host}:${port}`);
+			const serverInstance = getServerInstance();
+			if (!serverInstance?.ready) {
+				logger.error(`${extensionPrefix} Edgio server is not ready`);
+				return false;
+			}
 
 			options.server.http(async (request: any, nextHandler: any) => {
 				const { _nodeRequest: req, _nodeResponse: res } = request;

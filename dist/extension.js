@@ -10,54 +10,71 @@ import http from "node:http";
 import net from "node:net";
 var serveStaticAssets;
 var runWithServerless;
-var edgioPorts;
 try {
   const corePath = __require.resolve("@edgio/cli/constants/core.js");
   const serveStaticAssetsPath = __require.resolve("@edgio/cli/serverless/serveStaticAssets.js");
   const runWithServerlessPath = __require.resolve("@edgio/cli/utils/runWithServerless.js");
   serveStaticAssets = await import(serveStaticAssetsPath).then((mod) => mod.default);
   runWithServerless = await import(runWithServerlessPath).then((mod) => mod.default);
-  const edgioCore = await import(corePath);
-  edgioPorts = edgioCore.PORTS;
+  if (!process.env.EDGIO_SERVER) {
+    const edgioCore = await import(corePath);
+    const serverInstance = {
+      ports: {
+        localhost: edgioCore.PORTS.localhost,
+        port: edgioCore.PORTS.port,
+        jsPort: edgioCore.PORTS.jsPort,
+        assetPort: edgioCore.PORTS.assetPort
+      },
+      ready: false
+    };
+    process.env.EDGIO_SERVER = JSON.stringify(serverInstance);
+  }
 } catch (error) {
   console.error(`Failed to resolve or import serveStaticAssets or runWithServerless: ${error}`);
 }
+var serverInstance = JSON.parse(process.env.EDGIO_SERVER);
 var cwd = process.cwd();
 var edgioPathName = ".edgio/";
 var edgioCwd;
 var originalChdir = process.chdir;
-process.chdir = (directory) => {
-  if (directory.includes(edgioPathName)) {
-    edgioCwd = directory;
-    return;
-  }
-  originalChdir(directory);
-};
+if (!process.chdir.hasOwnProperty("__edgio_runner_override")) {
+  process.chdir = (directory) => {
+    if (directory.includes(edgioPathName)) {
+      edgioCwd = directory;
+      return;
+    }
+    originalChdir(directory);
+  };
+  process.chdir.__edgio_runner_override = true;
+}
 var originalCwd = process.cwd;
-process.cwd = () => {
-  const stack = new Error().stack;
-  const cwdLines = stack?.split(`
+if (!process.cwd.hasOwnProperty("__edgio_runner_override")) {
+  process.cwd = () => {
+    const stack = new Error().stack;
+    const cwdLines = stack?.split(`
 `).filter((line) => line.includes("process.cwd") || line.includes(edgioPathName)) ?? [];
-  if (cwdLines.length > 0 && edgioCwd) {
-    return edgioCwd;
-  }
-  return originalCwd();
-};
+    if (cwdLines.length >= 2 && edgioCwd) {
+      return edgioCwd;
+    }
+    return originalCwd();
+  };
+  process.cwd.__edgio_runner_override = true;
+}
 var production = true;
 var edgioDir = join(cwd, ".edgio");
 var assetsDir = join(edgioDir, "s3");
 var permanentAssetsDir = join(edgioDir, "s3-permanent");
-var assetPort = 3002;
 var staticAssetDirs = [assetsDir, permanentAssetsDir];
 var withHandler = false;
 var startEdgio = async () => {
+  console.log("serverInstance", serverInstance);
   const readyPromise = checkServerReady();
-  await serveStaticAssets(staticAssetDirs, assetPort);
+  await serveStaticAssets(staticAssetDirs, serverInstance.ports.assetPort);
   await runWithServerless(edgioDir, { devMode: !production, withHandler });
   return readyPromise;
 };
 async function checkServerReady() {
-  const { localhost, port } = edgioPorts;
+  const { localhost: host, port } = serverInstance.ports;
   return new Promise((resolve, reject) => {
     const timeout = 5000;
     const startTime = Date.now();
@@ -65,22 +82,25 @@ async function checkServerReady() {
       const socket = new net.Socket;
       socket.once("connect", () => {
         socket.destroy();
-        resolve({ host: localhost, port });
+        serverInstance.ready = true;
+        process.env.EDGIO_SERVER = JSON.stringify(serverInstance);
+        resolve(serverInstance);
       }).once("error", () => {
         socket.destroy();
         if (Date.now() - startTime < timeout) {
           checkPort();
         } else {
-          reject(new Error(`Server not ready on ${localhost}:${port} within timeout`));
+          reject(new Error(`Server not ready on ${host}:${port} within timeout`));
         }
       });
-      socket.connect(port, localhost);
+      socket.connect(port, host);
     };
     checkPort();
   });
 }
 async function handleEdgioRequest(req, res) {
-  const { host, port } = await checkServerReady();
+  const serverInstance2 = getServerInstance();
+  const { localhost: host, port } = serverInstance2.ports;
   const options = {
     method: req.method,
     headers: req.headers,
@@ -102,6 +122,9 @@ async function handleEdgioRequest(req, res) {
     });
   });
 }
+function getServerInstance() {
+  return JSON.parse(process.env.EDGIO_SERVER);
+}
 var edgio_default = startEdgio;
 
 // src/extension.ts
@@ -122,17 +145,21 @@ function startOnMainThread(options) {
   const config = resolveConfig(options);
   return {
     async setupDirectory(_, componentPath) {
+      const serverInstance2 = await edgio_default();
+      logger.info(`${extensionPrefix} Edgio server ready on http://${serverInstance2.ports.localhost}:${serverInstance2.ports.port}`);
       return true;
     }
   };
 }
 function start(options) {
   const config = resolveConfig(options);
-  logger.info(`${extensionPrefix} Starting Edgio extension...`);
   return {
     async handleDirectory(_, componentPath) {
-      const { host, port } = await edgio_default();
-      logger.info(`${extensionPrefix} Edgio ready on http://${host}:${port}`);
+      const serverInstance2 = getServerInstance();
+      if (!serverInstance2?.ready) {
+        logger.error(`${extensionPrefix} Edgio server is not ready`);
+        return false;
+      }
       options.server.http(async (request, nextHandler) => {
         const { _nodeRequest: req, _nodeResponse: res } = request;
         logger.debug(`${extensionPrefix} Handling request: ${req.url.split("?")[0]}`);
