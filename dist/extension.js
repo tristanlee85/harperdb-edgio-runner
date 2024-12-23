@@ -52643,6 +52643,7 @@ var staticAssetDirs = [assetsDir, permanentAssetsDir];
 var withHandler = false;
 var startEdgio = async () => {
   console.log("serverInstance", serverInstance);
+  console.log("edgioDir", edgioDir);
   const readyPromise = checkServerReady();
   await serveStaticAssets(staticAssetDirs, serverInstance.ports.assetPort);
   await runWithServerless(edgioDir, { devMode: !production, withHandler });
