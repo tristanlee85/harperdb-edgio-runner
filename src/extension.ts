@@ -49,10 +49,11 @@ function resolveConfig(options: ExtensionOptions) {
  */
 export function startOnMainThread(options: ExtensionOptions) {
 	const config = resolveConfig(options);
+	logger.info(`${extensionPrefix}- startOnMainThread`);
 
 	return {
 		async setupDirectory(_: any, componentPath: string) {
-			// Start the Edgio server
+			logger.info(`${extensionPrefix}- setupDirectory`);
 			const serverInstance = await startEdgio();
 			logger.info(
 				`${extensionPrefix} Edgio server ready on http://${serverInstance.ports.localhost}:${serverInstance.ports.port}`
@@ -73,9 +74,10 @@ export function startOnMainThread(options: ExtensionOptions) {
  */
 export function start(options: ExtensionOptions) {
 	const config = resolveConfig(options);
-
+	logger.info(`${extensionPrefix}- start`);
 	return {
 		async handleDirectory(_: any, componentPath: string) {
+			logger.info(`${extensionPrefix}- handleDirectory`);
 			const serverInstance = getServerInstance();
 			if (!serverInstance?.ready) {
 				// logger.error(`${extensionPrefix} Edgio server is not ready`);
