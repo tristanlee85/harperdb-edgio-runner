@@ -38,7 +38,7 @@ try {
 		process.env.EDGIO_SERVER = JSON.stringify(serverInstance);
 	}
 } catch (error) {
-	throw new Error(`Failed to resolve or import serveStaticAssets or runWithServerless: ${error}`);
+	logger.error(`Failed to resolve or import serveStaticAssets or runWithServerless: ${error}`);
 }
 
 const serverInstance: EdgioServerInstance = JSON.parse(process.env.EDGIO_SERVER!);
@@ -92,6 +92,9 @@ const assetsDir = join(edgioDir, 's3');
 const permanentAssetsDir = join(edgioDir, 's3-permanent');
 const staticAssetDirs = [assetsDir, permanentAssetsDir];
 const withHandler = false;
+
+logger.info(`- serverInstance: ${JSON.stringify(serverInstance, null, 2)}`);
+logger.info(`- edgioDir: ${edgioDir}`);
 
 const startEdgio = async () => {
 	console.log('serverInstance', serverInstance);
