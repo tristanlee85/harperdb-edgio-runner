@@ -20135,7 +20135,7 @@ var require_lib3 = __commonJS((exports, module) => {
     return ex && typeof ex === "object" && "default" in ex ? ex["default"] : ex;
   }
   var Stream = _interopDefault(__require("stream"));
-  var http = _interopDefault(__require("http"));
+  var http2 = _interopDefault(__require("http"));
   var Url = _interopDefault(__require("url"));
   var whatwgUrl = _interopDefault(require_public_api());
   var https = _interopDefault(__require("https"));
@@ -20778,7 +20778,7 @@ var require_lib3 = __commonJS((exports, module) => {
     return headers;
   }
   var INTERNALS$1 = Symbol("Response internals");
-  var STATUS_CODES = http.STATUS_CODES;
+  var STATUS_CODES = http2.STATUS_CODES;
 
   class Response {
     constructor() {
@@ -21021,7 +21021,7 @@ var require_lib3 = __commonJS((exports, module) => {
     return new fetch2.Promise(function(resolve, reject) {
       const request = new Request2(url, opts);
       const options = getNodeRequestOptions(request);
-      const send = (options.protocol === "https:" ? https : http).request;
+      const send = (options.protocol === "https:" ? https : http2).request;
       const signal = request.signal;
       let response = null;
       const abort = function abort() {
@@ -50620,8 +50620,8 @@ var require_extension = __commonJS((exports, module) => {
 var require_websocket = __commonJS((exports, module) => {
   var EventEmitter = __require("events");
   var https = __require("https");
-  var http = __require("http");
-  var net = __require("net");
+  var http2 = __require("http");
+  var net2 = __require("net");
   var tls = __require("tls");
   var { randomBytes, createHash } = __require("crypto");
   var { Duplex, Readable } = __require("stream");
@@ -51033,7 +51033,7 @@ var require_websocket = __commonJS((exports, module) => {
     }
     const defaultPort = isSecure ? 443 : 80;
     const key = randomBytes(16).toString("base64");
-    const request = isSecure ? https.request : http.request;
+    const request = isSecure ? https.request : http2.request;
     const protocolSet = new Set;
     let perMessageDeflate;
     opts.createConnection = opts.createConnection || (isSecure ? tlsConnect : netConnect);
@@ -51228,12 +51228,12 @@ var require_websocket = __commonJS((exports, module) => {
   }
   function netConnect(options) {
     options.path = options.socketPath;
-    return net.connect(options);
+    return net2.connect(options);
   }
   function tlsConnect(options) {
     options.path = undefined;
     if (!options.servername && options.servername !== "") {
-      options.servername = net.isIP(options.host) ? "" : options.host;
+      options.servername = net2.isIP(options.host) ? "" : options.host;
     }
     return tls.connect(options);
   }
@@ -51525,7 +51525,7 @@ var require_subprotocol = __commonJS((exports, module) => {
 // node_modules/@edgio/core/node_modules/ws/lib/websocket-server.js
 var require_websocket_server = __commonJS((exports, module) => {
   var EventEmitter = __require("events");
-  var http = __require("http");
+  var http2 = __require("http");
   var { Duplex } = __require("stream");
   var { createHash } = __require("crypto");
   var extension = require_extension();
@@ -51563,8 +51563,8 @@ var require_websocket_server = __commonJS((exports, module) => {
         throw new TypeError('One and only one of the "port", "server", or "noServer" options ' + "must be specified");
       }
       if (options.port != null) {
-        this._server = http.createServer((req, res) => {
-          const body = http.STATUS_CODES[426];
+        this._server = http2.createServer((req, res) => {
+          const body = http2.STATUS_CODES[426];
           res.writeHead(426, {
             "Content-Length": body.length,
             "Content-Type": "text/plain"
@@ -51796,7 +51796,7 @@ var require_websocket_server = __commonJS((exports, module) => {
     this.destroy();
   }
   function abortHandshake(socket, code, message, headers) {
-    message = message || http.STATUS_CODES[code];
+    message = message || http2.STATUS_CODES[code];
     headers = {
       Connection: "close",
       "Content-Type": "text/html",
@@ -51804,7 +51804,7 @@ var require_websocket_server = __commonJS((exports, module) => {
       ...headers
     };
     socket.once("finish", socket.destroy);
-    socket.end(`HTTP/1.1 ${code} ${http.STATUS_CODES[code]}\r
+    socket.end(`HTTP/1.1 ${code} ${http2.STATUS_CODES[code]}\r
 ` + Object.keys(headers).map((h) => `${h}: ${headers[h]}`).join(`\r
 `) + `\r
 \r
@@ -52581,74 +52581,13 @@ var require_runWithServerless = __commonJS((exports, module) => {
 
 // src/extension.ts
 import assert from "node:assert";
+import { join } from "node:path";
 
 // src/edgio.ts
-import { join } from "node:path";
 import http from "node:http";
 import net from "node:net";
-var serveStaticAssets;
-var runWithServerless;
-try {
-  serveStaticAssets = await Promise.resolve().then(() => __toESM(require_serveStaticAssets(), 1)).then((mod) => mod.default);
-  runWithServerless = await Promise.resolve().then(() => __toESM(require_runWithServerless(), 1)).then((mod) => mod.default);
-  if (!process.env.EDGIO_SERVER) {
-    const edgioCore = await Promise.resolve().then(() => __toESM(require_core(), 1));
-    const serverInstance = {
-      ports: {
-        localhost: edgioCore.PORTS.localhost,
-        port: edgioCore.PORTS.port,
-        jsPort: edgioCore.PORTS.jsPort,
-        assetPort: edgioCore.PORTS.assetPort
-      },
-      ready: false
-    };
-    process.env.EDGIO_SERVER = JSON.stringify(serverInstance);
-  }
-} catch (error) {
-  throw new Error(`Failed to resolve or import serveStaticAssets or runWithServerless: ${error}`);
-}
-var serverInstance = JSON.parse(process.env.EDGIO_SERVER);
-var cwd = process.cwd();
-var edgioPathName = ".edgio/";
-var edgioCwd;
-var originalChdir = process.chdir;
-if (!process.chdir.hasOwnProperty("__edgio_runner_override")) {
-  process.chdir = (directory) => {
-    if (directory.includes(edgioPathName)) {
-      edgioCwd = directory;
-      return;
-    }
-    originalChdir(directory);
-  };
-  process.chdir.__edgio_runner_override = true;
-}
-var originalCwd = process.cwd;
-if (!process.cwd.hasOwnProperty("__edgio_runner_override")) {
-  process.cwd = () => {
-    const stack = new Error().stack;
-    const cwdLines = stack?.split(`
-`).filter((line) => line.includes("process.cwd") || line.includes(edgioPathName)) ?? [];
-    if (cwdLines.length >= 2 && edgioCwd) {
-      return edgioCwd;
-    }
-    return originalCwd();
-  };
-  process.cwd.__edgio_runner_override = true;
-}
-var production = true;
-var edgioDir = join(cwd, ".edgio");
-var assetsDir = join(edgioDir, "s3");
-var permanentAssetsDir = join(edgioDir, "s3-permanent");
-var staticAssetDirs = [assetsDir, permanentAssetsDir];
-var withHandler = false;
-var startEdgio = async () => {
-  console.log("serverInstance", serverInstance);
-  const readyPromise = checkServerReady();
-  await serveStaticAssets(staticAssetDirs, serverInstance.ports.assetPort);
-  await runWithServerless(edgioDir, { devMode: !production, withHandler });
-  return readyPromise;
-};
 async function checkServerReady() {
+  const serverInstance = getServerInstance();
   const { localhost: host, port } = serverInstance.ports;
   return new Promise((resolve, reject) => {
     const timeout = 5000;
@@ -52674,8 +52613,8 @@ async function checkServerReady() {
   });
 }
 async function handleEdgioRequest(req, res) {
-  const serverInstance2 = getServerInstance();
-  const { localhost: host, port } = serverInstance2.ports;
+  const serverInstance = getServerInstance();
+  const { localhost: host, port } = serverInstance.ports;
   const options = {
     method: req.method,
     headers: req.headers,
@@ -52700,7 +52639,6 @@ async function handleEdgioRequest(req, res) {
 function getServerInstance() {
   return JSON.parse(process.env.EDGIO_SERVER);
 }
-var edgio_default = startEdgio;
 
 // src/extension.ts
 var extensionPrefix = "[edgio-runner]";
@@ -52720,8 +52658,56 @@ function startOnMainThread(options) {
   const config = resolveConfig(options);
   return {
     async setupDirectory(_, componentPath) {
-      const serverInstance2 = await edgio_default();
-      logger.info(`${extensionPrefix} Edgio server ready on http://${serverInstance2.ports.localhost}:${serverInstance2.ports.port}`);
+      const serveStaticAssets = require_serveStaticAssets();
+      const runWithServerless = require_runWithServerless();
+      const edgioCore = require_core();
+      const serverInstance = {
+        ports: {
+          localhost: edgioCore.PORTS.localhost,
+          port: edgioCore.PORTS.port,
+          jsPort: edgioCore.PORTS.jsPort,
+          assetPort: edgioCore.PORTS.assetPort
+        },
+        ready: false
+      };
+      process.env.EDGIO_SERVER = JSON.stringify(serverInstance);
+      const cwd = process.cwd();
+      const edgioPathName = ".edgio/";
+      let edgioCwd;
+      const originalChdir = process.chdir;
+      if (!process.chdir.hasOwnProperty("__edgio_runner_override")) {
+        process.chdir = (directory) => {
+          if (directory.includes(edgioPathName)) {
+            edgioCwd = directory;
+            return;
+          }
+          originalChdir(directory);
+        };
+        process.chdir.__edgio_runner_override = true;
+      }
+      const originalCwd = process.cwd;
+      if (!process.cwd.hasOwnProperty("__edgio_runner_override")) {
+        process.cwd = () => {
+          const stack = new Error().stack;
+          const cwdLines = stack?.split(`
+`).filter((line) => line.includes("process.cwd") || line.includes(edgioPathName)) ?? [];
+          if (cwdLines.length >= 2 && edgioCwd) {
+            return edgioCwd;
+          }
+          return originalCwd();
+        };
+        process.cwd.__edgio_runner_override = true;
+      }
+      const production = true;
+      const edgioDir = join(cwd, ".edgio");
+      const assetsDir = join(edgioDir, "s3");
+      const permanentAssetsDir = join(edgioDir, "s3-permanent");
+      const staticAssetDirs = [assetsDir, permanentAssetsDir];
+      const withHandler = false;
+      await serveStaticAssets(staticAssetDirs, serverInstance.ports.assetPort);
+      await runWithServerless(edgioDir, { devMode: !production, withHandler });
+      await checkServerReady();
+      logger.info(`${extensionPrefix} Edgio server ready on http://${serverInstance.ports.localhost}:${serverInstance.ports.port}`);
       return true;
     }
   };
@@ -52730,8 +52716,8 @@ function start(options) {
   const config = resolveConfig(options);
   return {
     async handleDirectory(_, componentPath) {
-      const serverInstance2 = getServerInstance();
-      if (!serverInstance2?.ready) {
+      const serverInstance = getServerInstance();
+      if (!serverInstance?.ready) {
         logger.error(`${extensionPrefix} Edgio server is not ready`);
         return false;
       }
