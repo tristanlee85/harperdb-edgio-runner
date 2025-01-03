@@ -74,6 +74,8 @@ export function startOnMainThread(options: ExtensionOptions) {
 			};
 			process.env.EDGIO_SERVER = JSON.stringify(serverInstance);
 
+			logger.info(`${extensionPrefix} setupDirectory: serverInstance: ${JSON.stringify(serverInstance)}`);
+
 			const cwd = process.cwd();
 			const edgioPathName = '.edgio/';
 			let edgioCwd: string | undefined;
@@ -85,6 +87,7 @@ export function startOnMainThread(options: ExtensionOptions) {
 			if (!process.chdir.hasOwnProperty('__edgio_runner_override')) {
 				process.chdir = (directory) => {
 					if (directory.includes(edgioPathName)) {
+						logger.info(`${extensionPrefix} chdir: Changing cwd to ${directory}`);
 						// Edgio has attempted to change the cwd so future calls to process.cwd() will return the
 						// expected cwd instead of the true cwd.
 						edgioCwd = directory;
@@ -106,6 +109,7 @@ export function startOnMainThread(options: ExtensionOptions) {
 
 					// This implies cwd() was called from within the Edgio handler.
 					if (cwdLines.length >= 2 && edgioCwd) {
+						logger.info(`${extensionPrefix} cwd: Returning edgioCwd: ${edgioCwd}`);
 						return edgioCwd;
 					}
 
