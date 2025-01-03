@@ -75,5 +75,8 @@ export async function handleEdgioRequest(req: any, res: any): Promise<any> {
 }
 
 export function getServerInstance(): EdgioServerInstance {
+	if (!process.env.EDGIO_SERVER) {
+		throw new Error('EDGIO_SERVER is not set');
+	}
 	return JSON.parse(process.env.EDGIO_SERVER!);
 }

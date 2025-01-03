@@ -52637,6 +52637,9 @@ async function handleEdgioRequest(req, res) {
   });
 }
 function getServerInstance() {
+  if (!process.env.EDGIO_SERVER) {
+    throw new Error("EDGIO_SERVER is not set");
+  }
   return JSON.parse(process.env.EDGIO_SERVER);
 }
 
@@ -52658,60 +52661,65 @@ function startOnMainThread(options) {
   const config = resolveConfig(options);
   return {
     async setupDirectory(_, componentPath) {
-      const serveStaticAssets = require_serveStaticAssets();
-      const runWithServerless = require_runWithServerless();
-      const edgioCore = require_core();
-      const serverInstance = {
-        ports: {
-          localhost: edgioCore.PORTS.localhost,
-          port: edgioCore.PORTS.port,
-          jsPort: edgioCore.PORTS.jsPort,
-          assetPort: edgioCore.PORTS.assetPort
-        },
-        ready: false
-      };
-      process.env.EDGIO_SERVER = JSON.stringify(serverInstance);
-      logger.info(`${extensionPrefix} setupDirectory: serverInstance: ${JSON.stringify(serverInstance)}`);
-      const cwd = process.cwd();
-      const edgioPathName = ".edgio/";
-      let edgioCwd;
-      const originalChdir = process.chdir;
-      if (!process.chdir.hasOwnProperty("__edgio_runner_override")) {
-        process.chdir = (directory) => {
-          if (directory.includes(edgioPathName)) {
-            logger.info(`${extensionPrefix} chdir: Changing cwd to ${directory}`);
-            edgioCwd = directory;
-            return;
-          }
-          originalChdir(directory);
+      try {
+        const serveStaticAssets = require_serveStaticAssets();
+        const runWithServerless = require_runWithServerless();
+        const edgioCore = require_core();
+        const serverInstance = {
+          ports: {
+            localhost: edgioCore.PORTS.localhost,
+            port: edgioCore.PORTS.port,
+            jsPort: edgioCore.PORTS.jsPort,
+            assetPort: edgioCore.PORTS.assetPort
+          },
+          ready: false
         };
-        process.chdir.__edgio_runner_override = true;
-      }
-      const originalCwd = process.cwd;
-      if (!process.cwd.hasOwnProperty("__edgio_runner_override")) {
-        process.cwd = () => {
-          const stack = new Error().stack;
-          const cwdLines = stack?.split(`
+        process.env.EDGIO_SERVER = JSON.stringify(serverInstance);
+        logger.info(`${extensionPrefix} setupDirectory: serverInstance: ${JSON.stringify(serverInstance)}`);
+        const cwd = process.cwd();
+        const edgioPathName = ".edgio/";
+        let edgioCwd;
+        const originalChdir = process.chdir;
+        if (!process.chdir.hasOwnProperty("__edgio_runner_override")) {
+          process.chdir = (directory) => {
+            if (directory.includes(edgioPathName)) {
+              logger.info(`${extensionPrefix} chdir: Changing cwd to ${directory}`);
+              edgioCwd = directory;
+              return;
+            }
+            originalChdir(directory);
+          };
+          process.chdir.__edgio_runner_override = true;
+        }
+        const originalCwd = process.cwd;
+        if (!process.cwd.hasOwnProperty("__edgio_runner_override")) {
+          process.cwd = () => {
+            const stack = new Error().stack;
+            const cwdLines = stack?.split(`
 `).filter((line) => line.includes("process.cwd") || line.includes(edgioPathName)) ?? [];
-          if (cwdLines.length >= 2 && edgioCwd) {
-            logger.info(`${extensionPrefix} cwd: Returning edgioCwd: ${edgioCwd}`);
-            return edgioCwd;
-          }
-          return originalCwd();
-        };
-        process.cwd.__edgio_runner_override = true;
+            if (cwdLines.length >= 2 && edgioCwd) {
+              logger.info(`${extensionPrefix} cwd: Returning edgioCwd: ${edgioCwd}`);
+              return edgioCwd;
+            }
+            return originalCwd();
+          };
+          process.cwd.__edgio_runner_override = true;
+        }
+        const production = true;
+        const edgioDir = join(cwd, ".edgio");
+        const assetsDir = join(edgioDir, "s3");
+        const permanentAssetsDir = join(edgioDir, "s3-permanent");
+        const staticAssetDirs = [assetsDir, permanentAssetsDir];
+        const withHandler = false;
+        await serveStaticAssets(staticAssetDirs, serverInstance.ports.assetPort);
+        await runWithServerless(edgioDir, { devMode: !production, withHandler });
+        await checkServerReady();
+        logger.info(`${extensionPrefix} Edgio server ready on http://${serverInstance.ports.localhost}:${serverInstance.ports.port}`);
+        return true;
+      } catch (error) {
+        logger.error(`${extensionPrefix} Error setting up directory: ${error}`);
+        return false;
       }
-      const production = true;
-      const edgioDir = join(cwd, ".edgio");
-      const assetsDir = join(edgioDir, "s3");
-      const permanentAssetsDir = join(edgioDir, "s3-permanent");
-      const staticAssetDirs = [assetsDir, permanentAssetsDir];
-      const withHandler = false;
-      await serveStaticAssets(staticAssetDirs, serverInstance.ports.assetPort);
-      await runWithServerless(edgioDir, { devMode: !production, withHandler });
-      await checkServerReady();
-      logger.info(`${extensionPrefix} Edgio server ready on http://${serverInstance.ports.localhost}:${serverInstance.ports.port}`);
-      return true;
     }
   };
 }

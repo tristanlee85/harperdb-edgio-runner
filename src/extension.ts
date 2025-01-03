@@ -54,89 +54,94 @@ export function startOnMainThread(options: ExtensionOptions) {
 
 	return {
 		async setupDirectory(_: any, componentPath: string) {
-			const serveStaticAssets = require('@edgio/cli/serverless/serveStaticAssets.js');
-			const runWithServerless = require('@edgio/cli/utils/runWithServerless.js');
+			try {
+				const serveStaticAssets = require('@edgio/cli/serverless/serveStaticAssets.js');
+				const runWithServerless = require('@edgio/cli/utils/runWithServerless.js');
 
-			// Load the Edgio ports into the shared process.env for all workers to reference.
-			// This is necessary because servers such as Next.js will set process.env.PORT AFTER
-			// the Edgio server has started. This is problematic because if `@edgio/cli/constants/core.js`
-			// is re-imported within a worker thread, then `edgioCore.PORTS.port` will become what
-			// Next.js sets it to (e.g. 3001), rather than the default Edgio server's port (e.g. 3000).
-			const edgioCore = require('@edgio/cli/constants/core.js');
-			const serverInstance: EdgioServerInstance = {
-				ports: {
-					localhost: edgioCore.PORTS.localhost,
-					port: edgioCore.PORTS.port,
-					jsPort: edgioCore.PORTS.jsPort,
-					assetPort: edgioCore.PORTS.assetPort,
-				},
-				ready: false,
-			};
-			process.env.EDGIO_SERVER = JSON.stringify(serverInstance);
-
-			logger.info(`${extensionPrefix} setupDirectory: serverInstance: ${JSON.stringify(serverInstance)}`);
-
-			const cwd = process.cwd();
-			const edgioPathName = '.edgio/';
-			let edgioCwd: string | undefined;
-
-			// Edgio will attempt to change the cwd to .edgio/lambda/, but this is not permissible
-			// within worker threads. This invocation of process.chdir() becomes a no-op within
-			// that context.
-			const originalChdir = process.chdir;
-			if (!process.chdir.hasOwnProperty('__edgio_runner_override')) {
-				process.chdir = (directory) => {
-					if (directory.includes(edgioPathName)) {
-						logger.info(`${extensionPrefix} chdir: Changing cwd to ${directory}`);
-						// Edgio has attempted to change the cwd so future calls to process.cwd() will return the
-						// expected cwd instead of the true cwd.
-						edgioCwd = directory;
-						return;
-					}
-					originalChdir(directory);
+				// Load the Edgio ports into the shared process.env for all workers to reference.
+				// This is necessary because servers such as Next.js will set process.env.PORT AFTER
+				// the Edgio server has started. This is problematic because if `@edgio/cli/constants/core.js`
+				// is re-imported within a worker thread, then `edgioCore.PORTS.port` will become what
+				// Next.js sets it to (e.g. 3001), rather than the default Edgio server's port (e.g. 3000).
+				const edgioCore = require('@edgio/cli/constants/core.js');
+				const serverInstance: EdgioServerInstance = {
+					ports: {
+						localhost: edgioCore.PORTS.localhost,
+						port: edgioCore.PORTS.port,
+						jsPort: edgioCore.PORTS.jsPort,
+						assetPort: edgioCore.PORTS.assetPort,
+					},
+					ready: false,
 				};
-				// @ts-ignore
-				process.chdir.__edgio_runner_override = true;
+				process.env.EDGIO_SERVER = JSON.stringify(serverInstance);
+
+				logger.info(`${extensionPrefix} setupDirectory: serverInstance: ${JSON.stringify(serverInstance)}`);
+
+				const cwd = process.cwd();
+				const edgioPathName = '.edgio/';
+				let edgioCwd: string | undefined;
+
+				// Edgio will attempt to change the cwd to .edgio/lambda/, but this is not permissible
+				// within worker threads. This invocation of process.chdir() becomes a no-op within
+				// that context.
+				const originalChdir = process.chdir;
+				if (!process.chdir.hasOwnProperty('__edgio_runner_override')) {
+					process.chdir = (directory) => {
+						if (directory.includes(edgioPathName)) {
+							logger.info(`${extensionPrefix} chdir: Changing cwd to ${directory}`);
+							// Edgio has attempted to change the cwd so future calls to process.cwd() will return the
+							// expected cwd instead of the true cwd.
+							edgioCwd = directory;
+							return;
+						}
+						originalChdir(directory);
+					};
+					// @ts-ignore
+					process.chdir.__edgio_runner_override = true;
+				}
+
+				const originalCwd = process.cwd;
+				if (!process.cwd.hasOwnProperty('__edgio_runner_override')) {
+					process.cwd = () => {
+						const stack = new Error().stack;
+
+						const cwdLines =
+							stack?.split('\n').filter((line) => line.includes('process.cwd') || line.includes(edgioPathName)) ?? [];
+
+						// This implies cwd() was called from within the Edgio handler.
+						if (cwdLines.length >= 2 && edgioCwd) {
+							logger.info(`${extensionPrefix} cwd: Returning edgioCwd: ${edgioCwd}`);
+							return edgioCwd;
+						}
+
+						return originalCwd();
+					};
+					// @ts-ignore
+					process.cwd.__edgio_runner_override = true;
+				}
+
+				const production = true;
+				const edgioDir = join(cwd, '.edgio');
+				const assetsDir = join(edgioDir, 's3');
+				const permanentAssetsDir = join(edgioDir, 's3-permanent');
+				const staticAssetDirs = [assetsDir, permanentAssetsDir];
+				const withHandler = false;
+
+				await serveStaticAssets(staticAssetDirs, serverInstance.ports.assetPort);
+				await runWithServerless(edgioDir, { devMode: !production, withHandler });
+
+				await checkServerReady();
+
+				// Start the Edgio server
+				logger.info(
+					`${extensionPrefix} Edgio server ready on http://${serverInstance.ports.localhost}:${serverInstance.ports.port}`
+				);
+
+				return true;
+			} catch (error) {
+				logger.error(`${extensionPrefix} Error setting up directory: ${error}`);
+				return false;
 			}
-
-			const originalCwd = process.cwd;
-			if (!process.cwd.hasOwnProperty('__edgio_runner_override')) {
-				process.cwd = () => {
-					const stack = new Error().stack;
-
-					const cwdLines =
-						stack?.split('\n').filter((line) => line.includes('process.cwd') || line.includes(edgioPathName)) ?? [];
-
-					// This implies cwd() was called from within the Edgio handler.
-					if (cwdLines.length >= 2 && edgioCwd) {
-						logger.info(`${extensionPrefix} cwd: Returning edgioCwd: ${edgioCwd}`);
-						return edgioCwd;
-					}
-
-					return originalCwd();
-				};
-				// @ts-ignore
-				process.cwd.__edgio_runner_override = true;
-			}
-
-			const production = true;
-			const edgioDir = join(cwd, '.edgio');
-			const assetsDir = join(edgioDir, 's3');
-			const permanentAssetsDir = join(edgioDir, 's3-permanent');
-			const staticAssetDirs = [assetsDir, permanentAssetsDir];
-			const withHandler = false;
-
-			await serveStaticAssets(staticAssetDirs, serverInstance.ports.assetPort);
-			await runWithServerless(edgioDir, { devMode: !production, withHandler });
-
-			await checkServerReady();
-
-			// Start the Edgio server
-			logger.info(
-				`${extensionPrefix} Edgio server ready on http://${serverInstance.ports.localhost}:${serverInstance.ports.port}`
-			);
-
-			return true;
 		},
 	};
 }
