@@ -75,7 +75,7 @@ export function start(options: ExtensionOptions) {
 
 	return {
 		async handleDirectory(_: any, componentPath: string) {
-			await prepareServer(config, componentPath, options.server);
+			// await prepareServer(config, componentPath, options.server);
 
 			options.server.http(async (request: any, nextHandler: any) => {
 				const { _nodeRequest: req, _nodeResponse: res } = request;
