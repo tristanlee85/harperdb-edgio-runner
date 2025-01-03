@@ -75,6 +75,7 @@ export function start(options: ExtensionOptions) {
 
 	return {
 		async handleDirectory(_: any, componentPath: string) {
+			logger.info(`${extensionPrefix} handleDirectory (pid: ${process.pid}, threadId: ${threadId})`);
 			// await prepareServer(config, componentPath, options.server);
 
 			options.server.http(async (request: any, nextHandler: any) => {

@@ -1,5 +1,6 @@
 // src/extension.ts
 import assert from "node:assert";
+import { threadId } from "node:worker_threads";
 
 // src/edgio.ts
 import http from "node:http";
@@ -62,6 +63,7 @@ function start(options) {
   const config = resolveConfig(options);
   return {
     async handleDirectory(_, componentPath) {
+      logger.info(`${extensionPrefix} handleDirectory (pid: ${process.pid}, threadId: ${threadId})`);
       options.server.http(async (request, nextHandler) => {
         const { _nodeRequest: req, _nodeResponse: res } = request;
         logger.info(`${extensionPrefix} Handling request: ${req.url.split("?")[0]}`);
