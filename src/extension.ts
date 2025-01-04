@@ -76,7 +76,7 @@ export function start(options: ExtensionOptions) {
 	return {
 		async handleDirectory(_: any, componentPath: string) {
 			logger.info(`${extensionPrefix} handleDirectory (pid: ${process.pid}, threadId: ${threadId})`);
-			// await prepareServer(config, componentPath, options.server);
+			await prepareServer(config, componentPath, options.server);
 
 			options.server.http(async (request: any, nextHandler: any) => {
 				const { _nodeRequest: req, _nodeResponse: res } = request;
@@ -99,7 +99,10 @@ async function prepareServer(config: any, componentPath: string, server: any) {
 	const edgioLockPath = join(tmpdir(), '.edgio-server.lock');
 	const { waitForServerReady, isServerReady } = createServerReadyHandler();
 
-	while (true) {
+	let attempt = 0;
+	const maxAttempts = 20;
+
+	while (attempt < maxAttempts) {
 		if (isServerReady()) {
 			logger.info(`${extensionPrefix} Edgio server already running`);
 			break;
@@ -114,6 +117,7 @@ async function prepareServer(config: any, componentPath: string, server: any) {
 			// If the lock file already exists, another thread is already preparing the server.
 			if (error.code === 'EEXIST') {
 				await setTimeout(500);
+				attempt++;
 				continue;
 			}
 
@@ -209,5 +213,9 @@ async function prepareServer(config: any, componentPath: string, server: any) {
 		// Release the lock and exit
 		unlinkSync(edgioLockPath);
 		break;
+	}
+
+	if (attempt >= maxAttempts) {
+		logger.error(`${extensionPrefix} Max attempts reached. Could not prepare Edgio server.`);
 	}
 }
