@@ -12,11 +12,11 @@ const extensionPrefix = '[edgio-runner]';
 const edgioLockPath = join(tmpdir(), '.edgio-server.lock');
 
 const _info = (message: string) => {
-	logger.info(`${extensionPrefix} ${message} (pid: ${process.pid}, threadId: ${threadId})`);
+	logger.error(`INFO ${extensionPrefix} ${message} (pid: ${process.pid}, threadId: ${threadId})`);
 };
 
 const _error = (message: string) => {
-	logger.error(`${extensionPrefix} ${message} (pid: ${process.pid}, threadId: ${threadId})`);
+	logger.error(`ERROR ${extensionPrefix} ${message} (pid: ${process.pid}, threadId: ${threadId})`);
 };
 
 /**

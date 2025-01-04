@@ -89,10 +89,10 @@ function getServerInstance() {
 var extensionPrefix = "[edgio-runner]";
 var edgioLockPath = join(tmpdir(), ".edgio-server.lock");
 var _info = (message) => {
-  logger.info(`${extensionPrefix} ${message} (pid: ${process.pid}, threadId: ${threadId})`);
+  logger.error(`INFO ${extensionPrefix} ${message} (pid: ${process.pid}, threadId: ${threadId})`);
 };
 var _error = (message) => {
-  logger.error(`${extensionPrefix} ${message} (pid: ${process.pid}, threadId: ${threadId})`);
+  logger.error(`ERROR ${extensionPrefix} ${message} (pid: ${process.pid}, threadId: ${threadId})`);
 };
 function assertType(name, option, expectedType) {
   if (option) {
