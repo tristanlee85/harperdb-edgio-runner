@@ -1,6 +1,6 @@
 // src/extension.ts
 import assert from "node:assert";
-import { openSync, writeSync, unlinkSync } from "node:fs";
+import { openSync, writeSync, unlinkSync, existsSync } from "node:fs";
 import { setTimeout as setTimeout2 } from "node:timers/promises";
 import { createRequire } from "node:module";
 import { join } from "node:path";
@@ -87,10 +87,11 @@ function getServerInstance() {
 
 // src/extension.ts
 var extensionPrefix = "[edgio-runner]";
-var info = (message) => {
+var edgioLockPath = join(tmpdir(), ".edgio-server.lock");
+var _info = (message) => {
   logger.info(`${extensionPrefix} ${message} (pid: ${process.pid}, threadId: ${threadId})`);
 };
-var error = (message) => {
+var _error = (message) => {
   logger.error(`${extensionPrefix} ${message} (pid: ${process.pid}, threadId: ${threadId})`);
 };
 function assertType(name, option, expectedType) {
@@ -108,7 +109,12 @@ function resolveConfig(options) {
 function startOnMainThread(options) {
   const config = resolveConfig(options);
   return {
-    async setupDirectory(_, componentPath) {
+    async handleDirectory(_, componentPath) {
+      _info("Main thread handleDirectory");
+      if (existsSync(edgioLockPath)) {
+        unlinkSync(edgioLockPath);
+      }
+      return true;
     }
   };
 }
@@ -116,13 +122,13 @@ function start(options) {
   const config = resolveConfig(options);
   return {
     async handleDirectory(_, componentPath) {
-      info("handleDirectory");
+      _info("handleDirectory");
       await prepareServer(config, componentPath, options.server);
       options.server.http(async (request, nextHandler) => {
         const { _nodeRequest: req, _nodeResponse: res } = request;
-        info(`Handling request: ${req.url.split("?")[0]}`);
+        _info(`Handling request: ${req.url.split("?")[0]}`);
         await handleEdgioRequest(req, res);
-        info(`Finished handling request: ${req.url.split("?")[0]}`);
+        _info(`Finished handling request: ${req.url.split("?")[0]}`);
         nextHandler(request);
       });
       return true;
@@ -130,30 +136,29 @@ function start(options) {
   };
 }
 async function prepareServer(config, componentPath, server) {
-  const edgioLockPath = join(tmpdir(), ".edgio-server.lock");
   const { waitForServerReady, isServerReady } = createServerReadyHandler();
   let attempt = 0;
   const maxAttempts = 20;
   while (attempt < maxAttempts) {
     if (isServerReady()) {
-      info("Edgio server already running");
+      _info("Edgio server already running");
       break;
     }
     try {
-      info("Creating lock file");
+      _info("Creating lock file");
       const buildLockFD = openSync(edgioLockPath, "wx");
       writeSync(buildLockFD, process.pid.toString());
-      info("Edgio server lock created");
-    } catch (error2) {
-      error2(`Error creating lock file: (${error2.code}) ${error2.message}`);
-      if (error2.code === "EEXIST") {
+      _info("Edgio server lock created");
+    } catch (e) {
+      _error(`Error creating lock file: (${e.code}) ${e.message}`);
+      if (e.code === "EEXIST") {
         await setTimeout2(500);
         attempt++;
         continue;
       }
-      throw error2;
+      throw e;
     }
-    info("Preparing Edgio server");
+    _info("Preparing Edgio server");
     const timerStart = performance.now();
     const componentRequire = createRequire(componentPath);
     const serveStaticAssets = (await import(componentRequire.resolve("@edgio/cli/serverless/serveStaticAssets"))).default;
@@ -176,7 +181,7 @@ async function prepareServer(config, componentPath, server) {
     if (!process.chdir.hasOwnProperty("__edgio_runner_override")) {
       process.chdir = (directory) => {
         if (directory.includes(edgioPathName)) {
-          info(`chdir: Changing cwd to ${directory}`);
+          _info(`chdir: Changing cwd to ${directory}`);
           edgioCwd = directory;
           return;
         }
@@ -191,7 +196,7 @@ async function prepareServer(config, componentPath, server) {
         const cwdLines = stack?.split(`
 `).filter((line) => line.includes("process.cwd") || line.includes(edgioPathName)) ?? [];
         if (cwdLines.length >= 2 && edgioCwd) {
-          info(`cwd: Returning edgioCwd: ${edgioCwd}`);
+          _info(`cwd: Returning edgioCwd: ${edgioCwd}`);
           return edgioCwd;
         }
         return originalCwd();
@@ -207,12 +212,12 @@ async function prepareServer(config, componentPath, server) {
     await serveStaticAssets(staticAssetDirs, serverInstance.ports.assetPort);
     await runWithServerless(edgioDir, { devMode: !production, withHandler });
     await waitForServerReady();
-    info(`Edgio server ready on http://${serverInstance.ports.localhost}:${serverInstance.ports.port} after ${performance.now() - timerStart}ms`);
+    _info(`Edgio server ready on http://${serverInstance.ports.localhost}:${serverInstance.ports.port} after ${performance.now() - timerStart}ms`);
     unlinkSync(edgioLockPath);
     break;
   }
   if (attempt >= maxAttempts) {
-    error("Max attempts reached. Could not prepare Edgio server.");
+    _error("Max attempts reached. Could not prepare Edgio server.");
   }
 }
 export {
