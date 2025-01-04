@@ -87,6 +87,12 @@ function getServerInstance() {
 
 // src/extension.ts
 var extensionPrefix = "[edgio-runner]";
+var info = (message) => {
+  logger.info(`${extensionPrefix} ${message} (pid: ${process.pid}, threadId: ${threadId})`);
+};
+var error = (message) => {
+  logger.error(`${extensionPrefix} ${message} (pid: ${process.pid}, threadId: ${threadId})`);
+};
 function assertType(name, option, expectedType) {
   if (option) {
     const found = typeof option;
@@ -110,13 +116,13 @@ function start(options) {
   const config = resolveConfig(options);
   return {
     async handleDirectory(_, componentPath) {
-      logger.info(`${extensionPrefix} handleDirectory (pid: ${process.pid}, threadId: ${threadId})`);
+      info("handleDirectory");
       await prepareServer(config, componentPath, options.server);
       options.server.http(async (request, nextHandler) => {
         const { _nodeRequest: req, _nodeResponse: res } = request;
-        logger.info(`${extensionPrefix} Handling request: ${req.url.split("?")[0]}`);
+        info(`Handling request: ${req.url.split("?")[0]}`);
         await handleEdgioRequest(req, res);
-        logger.info(`${extensionPrefix} Finished handling request: ${req.url.split("?")[0]}`);
+        info(`Finished handling request: ${req.url.split("?")[0]}`);
         nextHandler(request);
       });
       return true;
@@ -130,22 +136,24 @@ async function prepareServer(config, componentPath, server) {
   const maxAttempts = 20;
   while (attempt < maxAttempts) {
     if (isServerReady()) {
-      logger.info(`${extensionPrefix} Edgio server already running`);
+      info("Edgio server already running");
       break;
     }
     try {
+      info("Creating lock file");
       const buildLockFD = openSync(edgioLockPath, "wx");
       writeSync(buildLockFD, process.pid.toString());
-      logger.info(`${extensionPrefix} Edgio server lock created (pid: ${process.pid}, threadId: ${threadId})`);
-    } catch (error) {
-      if (error.code === "EEXIST") {
+      info("Edgio server lock created");
+    } catch (error2) {
+      error2(`Error creating lock file: (${error2.code}) ${error2.message}`);
+      if (error2.code === "EEXIST") {
         await setTimeout2(500);
         attempt++;
         continue;
       }
-      throw error;
+      throw error2;
     }
-    logger.info(`${extensionPrefix} Preparing Edgio server (pid: ${process.pid})...`);
+    info("Preparing Edgio server");
     const timerStart = performance.now();
     const componentRequire = createRequire(componentPath);
     const serveStaticAssets = (await import(componentRequire.resolve("@edgio/cli/serverless/serveStaticAssets"))).default;
@@ -168,7 +176,7 @@ async function prepareServer(config, componentPath, server) {
     if (!process.chdir.hasOwnProperty("__edgio_runner_override")) {
       process.chdir = (directory) => {
         if (directory.includes(edgioPathName)) {
-          logger.info(`${extensionPrefix} chdir: Changing cwd to ${directory}`);
+          info(`chdir: Changing cwd to ${directory}`);
           edgioCwd = directory;
           return;
         }
@@ -183,7 +191,7 @@ async function prepareServer(config, componentPath, server) {
         const cwdLines = stack?.split(`
 `).filter((line) => line.includes("process.cwd") || line.includes(edgioPathName)) ?? [];
         if (cwdLines.length >= 2 && edgioCwd) {
-          logger.info(`${extensionPrefix} cwd: Returning edgioCwd: ${edgioCwd}`);
+          info(`cwd: Returning edgioCwd: ${edgioCwd}`);
           return edgioCwd;
         }
         return originalCwd();
@@ -199,12 +207,12 @@ async function prepareServer(config, componentPath, server) {
     await serveStaticAssets(staticAssetDirs, serverInstance.ports.assetPort);
     await runWithServerless(edgioDir, { devMode: !production, withHandler });
     await waitForServerReady();
-    logger.info(`${extensionPrefix} Edgio server ready on http://${serverInstance.ports.localhost}:${serverInstance.ports.port} after ${performance.now() - timerStart}ms (pid: ${process.pid})`);
+    info(`Edgio server ready on http://${serverInstance.ports.localhost}:${serverInstance.ports.port} after ${performance.now() - timerStart}ms`);
     unlinkSync(edgioLockPath);
     break;
   }
   if (attempt >= maxAttempts) {
-    logger.error(`${extensionPrefix} Max attempts reached. Could not prepare Edgio server.`);
+    error("Max attempts reached. Could not prepare Edgio server.");
   }
 }
 export {
