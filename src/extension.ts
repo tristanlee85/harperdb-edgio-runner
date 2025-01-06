@@ -1,8 +1,8 @@
 import assert from 'node:assert';
-import { openSync, writeSync, unlinkSync, existsSync } from 'node:fs';
+import { openSync, writeSync, unlinkSync } from 'node:fs';
 import { setTimeout } from 'node:timers/promises';
 import { createRequire } from 'node:module';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
 import { threadId } from 'node:worker_threads';
 import { handleEdgioRequest, createServerReadyHandler, getServerInstance, setServerInstance } from './edgio';
@@ -221,6 +221,11 @@ async function startEdgioServer(componentPath: string) {
 
 	//await serveStaticAssets(staticAssetDirs, serverInstance.ports.assetPort);
 	_info(`Running with serverless under ${edgioDir}`);
+	_info(
+		`Will attempt to resolve 'node_modules/next/dist/server/lib/start-server.js' at ${resolve(
+			'node_modules/next/dist/server/lib/start-server.js'
+		)}`
+	);
 	await runWithServerless(edgioDir, { devMode: !production, withHandler });
 
 	_info('Waiting for server ready');

@@ -3,7 +3,7 @@ import assert from "node:assert";
 import { openSync, writeSync, unlinkSync } from "node:fs";
 import { setTimeout as setTimeout2 } from "node:timers/promises";
 import { createRequire } from "node:module";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { tmpdir } from "node:os";
 import { threadId } from "node:worker_threads";
 
@@ -223,6 +223,7 @@ async function startEdgioServer(componentPath) {
   const staticAssetDirs = [assetsDir, permanentAssetsDir];
   const withHandler = false;
   _info(`Running with serverless under ${edgioDir}`);
+  _info(`Will attempt to resolve 'node_modules/next/dist/server/lib/start-server.js' at ${resolve("node_modules/next/dist/server/lib/start-server.js")}`);
   await runWithServerless(edgioDir, { devMode: !production, withHandler });
   _info("Waiting for server ready");
   await waitForServerReady();
