@@ -5,7 +5,7 @@ import { createRequire } from 'node:module';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { threadId } from 'node:worker_threads';
-import { handleEdgioRequest, createServerReadyHandler } from './edgio';
+import { handleEdgioRequest, createServerReadyHandler, getServerInstance, setServerInstance } from './edgio';
 import type { EdgioServerInstance } from './edgio';
 
 const extensionPrefix = '[edgio-runner]';
@@ -56,29 +56,6 @@ function resolveConfig(options: ExtensionOptions) {
 }
 
 /**
- * This method is executed once, on the main thread, and is responsible for
- * returning a Resource Extension that will subsequently be executed once,
- * on the main thread.
- *
- * @param {ExtensionOptions} options
- * @returns
- */
-export function startOnMainThread(options: ExtensionOptions) {
-	const config = resolveConfig(options);
-
-	return {
-		async handleDirectory(_: any, componentPath: string) {
-			_info('Main thread handleDirectory');
-			if (existsSync(edgioLockPath)) {
-				unlinkSync(edgioLockPath);
-			}
-
-			return true;
-		},
-	};
-}
-
-/**
  * This method is executed on each worker thread, and is responsible for
  * returning a Resource Extension that will subsequently be executed on each
  * worker thread.
@@ -91,7 +68,7 @@ export function start(options: ExtensionOptions) {
 
 	return {
 		async handleDirectory(_: any, componentPath: string) {
-			_info('handleDirectory');
+			_info('start:handleDirectory');
 			await prepareServer(config, componentPath, options.server);
 
 			options.server.http(async (request: any, nextHandler: any) => {
@@ -112,52 +89,72 @@ export function start(options: ExtensionOptions) {
 }
 
 async function prepareServer(config: any, componentPath: string, server: any) {
-	const { waitForServerReady, isServerReady } = createServerReadyHandler();
-
-	let attempt = 0;
+	const { isServerReady } = createServerReadyHandler();
 	const maxAttempts = 20;
+	const lockTimeout = 5000;
+	const checkInterval = 250;
+	let attempt = 0;
+
+	const startTime = Date.now();
 
 	while (attempt < maxAttempts) {
-		if (isServerReady()) {
-			_info('Edgio server already running');
-			break;
+		const elapsedTime = Date.now() - startTime;
+
+		if (elapsedTime > lockTimeout) {
+			throw new Error('Timeout while waiting for the server lock.');
 		}
 
-		// Create a lock file to prevent multiple threads from starting the Edgio server.
+		if (isServerReady()) {
+			_info('Server is already running. Exiting lock acquisition loop.');
+			return;
+		}
+
 		try {
-			_info('Creating lock file');
-			const buildLockFD = openSync(edgioLockPath, 'wx');
-			writeSync(buildLockFD, process.pid.toString());
-			_info('Edgio server lock created');
-		} catch (e: any) {
-			_error(`Error creating lock file: (${e.code}) ${e.message}`);
-			// If the lock file already exists, another thread is already preparing the server.
-			if (e.code === 'EEXIST') {
-				await setTimeout(500);
+			const lockFileHandle = openSync(edgioLockPath, 'wx');
+			writeSync(lockFileHandle, process.pid.toString());
+
+			_info('Lock file acquired. Starting the server.');
+
+			try {
+				await startEdgioServer(componentPath);
+			} finally {
+				unlinkSync(edgioLockPath);
+				_info('Lock file released.');
+			}
+
+			return;
+		} catch (err: any) {
+			if (err.code === 'EEXIST') {
+				_error(`Lock file exists. Waiting for release... (Attempt ${attempt + 1})`);
+				await setTimeout(checkInterval);
 				attempt++;
 				continue;
 			}
-
-			throw e;
+			throw err;
 		}
+	}
 
-		_info('Preparing Edgio server');
+	throw new Error('Max attempts reached. Could not acquire the server lock.');
+}
 
-		// Log worker threads
+async function startEdgioServer(componentPath: string) {
+	const { waitForServerReady } = createServerReadyHandler();
+	_info('Preparing Edgio server');
 
-		const timerStart = performance.now();
-		const componentRequire = createRequire(componentPath);
-		const serveStaticAssets = (await import(componentRequire.resolve('@edgio/cli/serverless/serveStaticAssets')))
-			.default;
-		const runWithServerless = (await import(componentRequire.resolve('@edgio/cli/utils/runWithServerless'))).default;
+	const timerStart = performance.now();
+	const componentRequire = createRequire(componentPath);
+	const serveStaticAssets = (await import(componentRequire.resolve('@edgio/cli/serverless/serveStaticAssets'))).default;
+	const runWithServerless = (await import(componentRequire.resolve('@edgio/cli/utils/runWithServerless'))).default;
 
-		// Load the Edgio ports into the shared process.env for all workers to reference.
-		// This is necessary because servers such as Next.js will set process.env.PORT AFTER
-		// the Edgio server has started. This is problematic because if `@edgio/cli/constants/core.js`
-		// is re-imported within a worker thread, then `edgioCore.PORTS.port` will become what
-		// Next.js sets it to (e.g. 3001), rather than the default Edgio server's port (e.g. 3000).
+	// Load the Edgio ports into the shared process.env for all workers to reference.
+	// This is necessary because servers such as Next.js will set process.env.PORT AFTER
+	// the Edgio server has started. This is problematic because if `@edgio/cli/constants/core.js`
+	// is re-imported within a worker thread, then `edgioCore.PORTS.port` will become what
+	// Next.js sets it to (e.g. 3001), rather than the default Edgio server's port (3000).
+	let serverInstance: EdgioServerInstance | null = getServerInstance();
+	if (!serverInstance) {
 		const edgioCore = (await import(componentRequire.resolve('@edgio/cli/constants/core'))).default;
-		const serverInstance: EdgioServerInstance = {
+		serverInstance = {
 			ports: {
 				localhost: edgioCore.PORTS.localhost,
 				port: edgioCore.PORTS.port,
@@ -166,73 +163,65 @@ async function prepareServer(config: any, componentPath: string, server: any) {
 			},
 			ready: false,
 		};
-		process.env.EDGIO_SERVER = JSON.stringify(serverInstance);
-
-		const cwd = process.cwd();
-		const edgioPathName = '.edgio/';
-		let edgioCwd: string | undefined;
-
-		// Edgio will attempt to change the cwd to .edgio/lambda/, but this is not permissible
-		// within worker threads. This invocation of process.chdir() becomes a no-op within
-		// that context.
-		const originalChdir = process.chdir;
-		if (!process.chdir.hasOwnProperty('__edgio_runner_override')) {
-			process.chdir = (directory) => {
-				if (directory.includes(edgioPathName)) {
-					_info(`chdir: Changing cwd to ${directory}`);
-					// Edgio has attempted to change the cwd so future calls to process.cwd() will return the
-					// expected cwd instead of the true cwd.
-					edgioCwd = directory;
-					return;
-				}
-				originalChdir(directory);
-			};
-			// @ts-ignore
-			process.chdir.__edgio_runner_override = true;
-		}
-
-		const originalCwd = process.cwd;
-		if (!process.cwd.hasOwnProperty('__edgio_runner_override')) {
-			process.cwd = () => {
-				const stack = new Error().stack;
-
-				const cwdLines =
-					stack?.split('\n').filter((line) => line.includes('process.cwd') || line.includes(edgioPathName)) ?? [];
-
-				// This implies cwd() was called from within the Edgio handler.
-				if (cwdLines.length >= 2 && edgioCwd) {
-					_info(`cwd: Returning edgioCwd: ${edgioCwd}`);
-					return edgioCwd;
-				}
-
-				return originalCwd();
-			};
-			// @ts-ignore
-			process.cwd.__edgio_runner_override = true;
-		}
-
-		const production = true;
-		const edgioDir = join(cwd, '.edgio');
-		const assetsDir = join(edgioDir, 's3');
-		const permanentAssetsDir = join(edgioDir, 's3-permanent');
-		const staticAssetDirs = [assetsDir, permanentAssetsDir];
-		const withHandler = false;
-
-		await serveStaticAssets(staticAssetDirs, serverInstance.ports.assetPort);
-		await runWithServerless(edgioDir, { devMode: !production, withHandler });
-		await waitForServerReady();
-
-		// Start the Edgio server
-		_info(
-			`Edgio server ready on http://${serverInstance.ports.localhost}:${serverInstance.ports.port} after ${performance.now() - timerStart}ms`
-		);
-
-		// Release the lock and exit
-		unlinkSync(edgioLockPath);
-		break;
+		setServerInstance(serverInstance);
 	}
 
-	if (attempt >= maxAttempts) {
-		_error('Max attempts reached. Could not prepare Edgio server.');
+	const cwd = process.cwd();
+	const edgioPathName = '.edgio/';
+	let edgioCwd: string | undefined;
+
+	// Edgio will attempt to change the cwd to .edgio/lambda/, but this is not permissible
+	// within worker threads. This invocation of process.chdir() becomes a no-op within
+	// that context.
+	const originalChdir = process.chdir;
+	if (!process.chdir.hasOwnProperty('__edgio_runner_override')) {
+		process.chdir = (directory) => {
+			if (directory.includes(edgioPathName)) {
+				_info(`chdir: Changing cwd to ${directory}`);
+				// Edgio has attempted to change the cwd so future calls to process.cwd() will return the
+				// expected cwd instead of the true cwd.
+				edgioCwd = directory;
+				return;
+			}
+			originalChdir(directory);
+		};
+		// @ts-ignore
+		process.chdir.__edgio_runner_override = true;
 	}
+
+	const originalCwd = process.cwd;
+	if (!process.cwd.hasOwnProperty('__edgio_runner_override')) {
+		process.cwd = () => {
+			const stack = new Error().stack;
+
+			const cwdLines =
+				stack?.split('\n').filter((line) => line.includes('process.cwd') || line.includes(edgioPathName)) ?? [];
+
+			// This implies cwd() was called from within the Edgio handler.
+			if (cwdLines.length >= 2 && edgioCwd) {
+				_info(`cwd: Returning edgioCwd: ${edgioCwd}`);
+				return edgioCwd;
+			}
+
+			return originalCwd();
+		};
+		// @ts-ignore
+		process.cwd.__edgio_runner_override = true;
+	}
+
+	const production = true;
+	const edgioDir = join(cwd, '.edgio');
+	const assetsDir = join(edgioDir, 's3');
+	const permanentAssetsDir = join(edgioDir, 's3-permanent');
+	const staticAssetDirs = [assetsDir, permanentAssetsDir];
+	const withHandler = false;
+
+	await serveStaticAssets(staticAssetDirs, serverInstance.ports.assetPort);
+	await runWithServerless(edgioDir, { devMode: !production, withHandler });
+	await waitForServerReady();
+
+	// Start the Edgio server
+	_info(
+		`Edgio server ready on http://${serverInstance.ports.localhost}:${serverInstance.ports.port} after ${performance.now() - timerStart}ms`
+	);
 }

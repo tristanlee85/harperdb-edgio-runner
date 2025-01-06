@@ -104,3 +104,7 @@ export function getServerInstance(): EdgioServerInstance | null {
 	}
 	return JSON.parse(process.env.EDGIO_SERVER);
 }
+
+export function setServerInstance(serverInstance: EdgioServerInstance) {
+	process.env.EDGIO_SERVER = JSON.stringify(serverInstance);
+}
