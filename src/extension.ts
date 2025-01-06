@@ -169,7 +169,7 @@ async function startEdgioServer(componentPath: string) {
 		setServerInstance(serverInstance);
 	}
 
-	const cwd = process.cwd();
+	const cwd = componentPath;
 	const edgioPathName = '.edgio/';
 	let edgioCwd: string | undefined;
 
@@ -219,7 +219,8 @@ async function startEdgioServer(componentPath: string) {
 	const staticAssetDirs = [assetsDir, permanentAssetsDir];
 	const withHandler = false;
 
-	await serveStaticAssets(staticAssetDirs, serverInstance.ports.assetPort);
+	//await serveStaticAssets(staticAssetDirs, serverInstance.ports.assetPort);
+	_info(`Running with serverless under ${edgioDir}`);
 	await runWithServerless(edgioDir, { devMode: !production, withHandler });
 
 	_info('Waiting for server ready');
