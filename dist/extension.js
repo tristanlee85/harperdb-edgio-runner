@@ -223,7 +223,9 @@ async function startEdgioServer(componentPath) {
   const staticAssetDirs = [assetsDir, permanentAssetsDir];
   const withHandler = false;
   _info(`Running with serverless under ${edgioDir}`);
-  _info(`Will attempt to resolve 'node_modules/next/dist/server/lib/start-server.js' at ${resolve("node_modules/next/dist/server/lib/start-server.js")}`);
+  _info(`Will attempt to resolve 'node_modules/next/dist/server/lib/start-server.js'
+resolve(): ${resolve("node_modules/next/dist/server/lib/start-server.js")}
+componentRequire.resolve(): ${componentRequire.resolve("node_modules/next/dist/server/lib/start-server.js")}`);
   await runWithServerless(edgioDir, { devMode: !production, withHandler });
   _info("Waiting for server ready");
   await waitForServerReady();

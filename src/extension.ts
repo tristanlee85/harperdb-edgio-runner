@@ -222,9 +222,9 @@ async function startEdgioServer(componentPath: string) {
 	//await serveStaticAssets(staticAssetDirs, serverInstance.ports.assetPort);
 	_info(`Running with serverless under ${edgioDir}`);
 	_info(
-		`Will attempt to resolve 'node_modules/next/dist/server/lib/start-server.js' at ${resolve(
+		`Will attempt to resolve 'node_modules/next/dist/server/lib/start-server.js'\nresolve(): ${resolve(
 			'node_modules/next/dist/server/lib/start-server.js'
-		)}`
+		)}\ncomponentRequire.resolve(): ${componentRequire.resolve('node_modules/next/dist/server/lib/start-server.js')}`
 	);
 	await runWithServerless(edgioDir, { devMode: !production, withHandler });
 
