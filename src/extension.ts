@@ -202,11 +202,11 @@ async function startEdgioServer(componentPath: string) {
 				stack?.split('\n').filter((line) => line.includes('process.cwd') || line.includes(edgioPathName)) ?? [];
 
 			// This implies cwd() was called from within the Edgio handler.
-			if (cwdLines.length >= 2 && edgioCwd) {
-				_info(`cwd: Returning edgioCwd: ${edgioCwd}`);
-				return edgioCwd;
-			}
-
+			// if (cwdLines.length >= 2 && edgioCwd) {
+			// 	_info(`cwd: Returning edgioCwd: ${edgioCwd}`);
+			// 	return edgioCwd;
+			// }
+			_info(`cwd: ${edgioCwd ?? originalCwd()}`);
 			return edgioCwd ?? originalCwd();
 		};
 		// @ts-ignore
