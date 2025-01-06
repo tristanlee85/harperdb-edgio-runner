@@ -163,6 +163,7 @@ async function prepareServer(config, componentPath, server) {
       throw err;
     }
   }
+  unlinkSync(edgioLockPath);
   throw new Error("Max attempts reached. Could not acquire the server lock.");
 }
 async function startEdgioServer(componentPath) {
@@ -223,6 +224,7 @@ async function startEdgioServer(componentPath) {
   const withHandler = false;
   await serveStaticAssets(staticAssetDirs, serverInstance.ports.assetPort);
   await runWithServerless(edgioDir, { devMode: !production, withHandler });
+  _info("Waiting for server ready");
   await waitForServerReady();
   _info(`Edgio server ready on http://${serverInstance.ports.localhost}:${serverInstance.ports.port} after ${performance.now() - timerStart}ms`);
 }

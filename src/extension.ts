@@ -134,6 +134,9 @@ async function prepareServer(config: any, componentPath: string, server: any) {
 		}
 	}
 
+	// At this point, we assume the lock should not exist and remove it to
+	// avoid future lock acquisition issues.
+	unlinkSync(edgioLockPath);
 	throw new Error('Max attempts reached. Could not acquire the server lock.');
 }
 
@@ -218,6 +221,8 @@ async function startEdgioServer(componentPath: string) {
 
 	await serveStaticAssets(staticAssetDirs, serverInstance.ports.assetPort);
 	await runWithServerless(edgioDir, { devMode: !production, withHandler });
+
+	_info('Waiting for server ready');
 	await waitForServerReady();
 
 	// Start the Edgio server
