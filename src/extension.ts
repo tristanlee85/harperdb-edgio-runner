@@ -206,8 +206,13 @@ async function startEdgioServer(componentPath: string) {
 			// 	_info(`cwd: Returning edgioCwd: ${edgioCwd}`);
 			// 	return edgioCwd;
 			// }
-			_info(`cwd: ${edgioCwd ?? originalCwd()}`);
-			return edgioCwd ?? originalCwd();
+			if (edgioCwd) {
+				_info(`cwd: Returning edgioCwd: ${edgioCwd}`);
+				return edgioCwd;
+			}
+
+			_info(`cwd: Returning componentPath: ${cwd}`);
+			return cwd;
 		};
 		// @ts-ignore
 		process.cwd.__edgio_runner_override = true;

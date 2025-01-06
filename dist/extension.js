@@ -208,8 +208,12 @@ async function startEdgioServer(componentPath) {
       const stack = new Error().stack;
       const cwdLines = stack?.split(`
 `).filter((line) => line.includes("process.cwd") || line.includes(edgioPathName)) ?? [];
-      _info(`cwd: ${edgioCwd ?? originalCwd()}`);
-      return edgioCwd ?? originalCwd();
+      if (edgioCwd) {
+        _info(`cwd: Returning edgioCwd: ${edgioCwd}`);
+        return edgioCwd;
+      }
+      _info(`cwd: Returning componentPath: ${cwd}`);
+      return cwd;
     };
     process.cwd.__edgio_runner_override = true;
   }
