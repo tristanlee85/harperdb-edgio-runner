@@ -224,7 +224,7 @@ async function startEdgioServer(componentPath: string) {
 	_info(
 		`Will attempt to resolve 'node_modules/next/dist/server/lib/start-server.js'\nresolve(): ${resolve(
 			'node_modules/next/dist/server/lib/start-server.js'
-		)}\ncomponentRequire.resolve(): ${componentRequire.resolve('node_modules/next/dist/server/lib/start-server.js')}`
+		)}\ncomponentRequire.resolve(): ${componentRequire.resolve.paths('node_modules/next/dist/server/lib/start-server.js')}`
 	);
 	await runWithServerless(edgioDir, { devMode: !production, withHandler });
 
