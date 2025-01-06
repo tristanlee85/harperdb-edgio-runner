@@ -1,8 +1,8 @@
 import assert from 'node:assert';
 import { openSync, writeSync, unlinkSync } from 'node:fs';
+import { join, resolve } from 'node:path';
 import { setTimeout } from 'node:timers/promises';
 import { createRequire } from 'node:module';
-import { join, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
 import { threadId } from 'node:worker_threads';
 import { handleEdgioRequest, createServerReadyHandler, getServerInstance, setServerInstance } from './edgio';
@@ -55,14 +55,15 @@ function resolveConfig(options: ExtensionOptions) {
 	};
 }
 
-/**
- * This method is executed on each worker thread, and is responsible for
- * returning a Resource Extension that will subsequently be executed on each
- * worker thread.
- *
- * @param {ExtensionOptions} options
- * @returns
- */
+// export function startOnMainThread(options: ExtensionOptions) {
+// 	return {
+// 		async setupDirectory(_: any, componentPath: string) {
+// 			console.log('setupDirectory', componentPath);
+// 			unlinkSync(edgioLockPath);
+// 		},
+// 	};
+// }
+
 export function start(options: ExtensionOptions) {
 	const config = resolveConfig(options);
 
@@ -206,7 +207,7 @@ async function startEdgioServer(componentPath: string) {
 				return edgioCwd;
 			}
 
-			return originalCwd();
+			return edgioCwd ?? originalCwd();
 		};
 		// @ts-ignore
 		process.cwd.__edgio_runner_override = true;

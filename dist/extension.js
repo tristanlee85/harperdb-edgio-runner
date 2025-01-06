@@ -1,9 +1,9 @@
 // src/extension.ts
 import assert from "node:assert";
 import { openSync, writeSync, unlinkSync } from "node:fs";
+import { join, resolve } from "node:path";
 import { setTimeout as setTimeout2 } from "node:timers/promises";
 import { createRequire } from "node:module";
-import { join, resolve } from "node:path";
 import { tmpdir } from "node:os";
 import { threadId } from "node:worker_threads";
 
@@ -212,7 +212,7 @@ async function startEdgioServer(componentPath) {
         _info(`cwd: Returning edgioCwd: ${edgioCwd}`);
         return edgioCwd;
       }
-      return originalCwd();
+      return edgioCwd ?? originalCwd();
     };
     process.cwd.__edgio_runner_override = true;
   }
